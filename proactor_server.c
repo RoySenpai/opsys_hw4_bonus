@@ -127,6 +127,7 @@ int main(void) {
 		fprintf(stderr, "%s addFd() failed: %s\n", C_PREFIX_ERROR, strerror(errno));
 		close(server_fd);
 		free(reactor);
+		free(proactor);
 		return EXIT_FAILURE;
 	}
 
@@ -145,6 +146,18 @@ void signal_handler() {
 	
 	if (reactor != NULL)
 	{
+		if (proactor != NULL)
+		{
+			fprintf(stdout, "%s Cancelling all proactor operations...\n", C_PREFIX_INFO);
+
+			if (((PProactor)proactor)->isRunning)
+				cancelProactor(proactor);
+
+			fprintf(stdout, "%s Proactor operations cancelled successfully.\n", C_PREFIX_INFO);
+
+			destroyProactor(proactor);
+		}
+
 		if (((reactor_t_ptr)reactor)->running)
 			stopReactor(reactor);
 
@@ -163,18 +176,6 @@ void signal_handler() {
 		}
 
 		free(reactor);
-
-		if (proactor != NULL)
-		{
-			fprintf(stdout, "%s Cancelling all proactor operations...\n", C_PREFIX_INFO);
-
-			if (((PProactor)proactor)->isRunning)
-				cancelProactor(proactor);
-			
-			destroyProactor(proactor);
-
-			fprintf(stdout, "%s Proactor operations cancelled successfully.\n", C_PREFIX_INFO);
-		}
 
 		fprintf(stdout, "%s Memory cleanup complete, may the force be with you.\n", C_PREFIX_INFO);
 		fprintf(stdout, "%s Statistics:\n", C_PREFIX_INFO);
@@ -261,10 +262,16 @@ void *client_handler(int fd, void *react) {
 
 	free(buf);
 
-	// Send a response to all clients.
-	runProactor(proactor);
+	// Send a response to all clients using the proactor thread, error checking is done inside the function.
+	int ret = runProactor(proactor);
 
-	// Wait for all responses to be sent.
+	if (ret == 1)
+	{
+		fprintf(stderr, "%s Proactor error: %s\n", C_PREFIX_ERROR, strerror(errno));
+		return NULL;
+	}
+
+	// This prevents memory leaks when we cancel the reactor thread. We know it's stupid, but it works.
 	pthread_join(((PProactor)proactor)->thread, NULL);
 
 	return react;
@@ -285,7 +292,7 @@ void *server_handler(int fd, void *react) {
 
 	int client_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
 
-	// Sanity check.
+	// Sanity check, as accept() can return -1 on error.
 	if (client_fd < 0)
 	{
 		fprintf(stderr, "%s accept() failed: %s\n", C_PREFIX_ERROR, strerror(errno));
@@ -297,7 +304,7 @@ void *server_handler(int fd, void *react) {
 	// Add the client to the reactor.
 	addFd(reactor, client_fd, client_handler);
 
-	// Add FD to the proactor.
+	// Add FD to the proactor, so we can send messages back to the client.
 	addFD2Proactor(proactor, client_fd, fds_handler);
 
 	client_count++;
@@ -306,9 +313,10 @@ void *server_handler(int fd, void *react) {
 }
 
 int fds_handler(int fd) {
+	// Sanity check for the file descriptor itself, as the proactor doesn't check it - it relies on the reactor to do so.
 	if (fd < 0)
 	{
-		fprintf(stderr, "%s Invalid file descriptor.\n", C_PREFIX_ERROR);
+		fprintf(stderr, "%s Proactor failed: Invalid file descriptor.\n", C_PREFIX_ERROR);
 		removeHandler(proactor, fd);
 		return 1;
 	}
@@ -323,10 +331,7 @@ int fds_handler(int fd) {
 		return 1;
 	}
 
-	// Will be removed from the proactor in the client handler of the reactor in the next run cycle.
-	else if (bytes_sent == 0)
-		return 0;
-
+	// We don't need to check if the client disconnected, as the reactor will handle that automatically.
 	total_bytes_sent += bytes_sent;
 
 	return 0;

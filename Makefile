@@ -1,10 +1,10 @@
 #################################################################################
-# 	Operation Systems (OSs) Course Assignment 4 Bonus Makefile			#
+# 	Operation Systems (OSs) Course Assignment 4 Bonus Makefile		#
 # 	Authors: Roy Simanovich and Linor Ronen (c) 2023			#
 # 	Description: This Makefile compiles the programs and libraries 		#
 # 				Date: 2023-06					#
 # 			Course: Operating Systems				#
-# 				Assignment: 4 (Bonus)					#
+# 				Assignment: 4 (Bonus)				#
 # 				Compiler: gcc					#
 # 				OS: Linux					#
 # 			IDE: Visual Studio Code					#

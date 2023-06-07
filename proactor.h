@@ -23,12 +23,21 @@
 #include <stdbool.h>
 #include <pthread.h>
 
+/********************/
+/* Typedefs Section */
+/********************/
+
 /*
  * @brief The proactor's handler function.
  * @param fd The file descriptor.
  * @return 0 on success, 1 on failure.
 */
 typedef int (*handler_t)(int);
+
+
+/**********************/
+/* Structures Section */
+/**********************/
 
 /*
  * @brief A node in the proactor's linked list.
@@ -99,6 +108,11 @@ typedef struct _proactor_t {
 	*/
 	int size;
 } Proactor, *PProactor;
+
+
+/********************************/
+/* Functions Declartion Section */
+/********************************/
 
 /*
  * @brief Creates a new proactor.

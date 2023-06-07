@@ -5,15 +5,15 @@
 **By Roy Simanovich and Linor Ronen**
 
 ## Description
-In this assignment we created a Reactor (Reactor Design Pattern) that handles multiple client file descriptors (TCP socket)
-and handles them accordingly, using an handler function for each file descriptor.
+In this assignment we created a Reactor (Reactor Design Pattern) that handles multiple client file
+descriptors (TCP socket) and handles them accordingly, using an handler function for each file
+descriptor. Also, in this specific bonus assignment, we also added a proactor (Proactor Design Pattern)
+that handles multiple client file descriptors (TCP socket), and handles them accordingly, using an
+handler function for each file descriptor. The proactor gets the file descriptors from the reactor,
+and whenever a client file descriptor is read from, the proactor handles it accordingly by sending
+a message to all the other clients, and then sending the message to the client that sent the message.
 
-Also, in this specific bonus assignment, we also added a proactor (Proactor Design Pattern) that handles
-multiple client file descriptors (TCP socket), and handles them accordingly, using an handler function
-for each file descriptor. The proactor gets the file descriptors from the reactor, and whenever a
-client file descriptor is read from, the proactor handles it accordingly by sending a message to all
-the other clients, and then sending the message to the client that sent the message.
-
+### Reactor Library
 The Reactor library supports the following functions:
 * `void *createReactor()` – Create a reactor object - a linked list of file descriptors and their handlers.
 * `void startReactor(void *react)` – Start executing the reactor, in a new thread. 
@@ -39,6 +39,7 @@ The Reactor library is implemented using the following design patterns:
 
 The Reactor library is implemented using a linked list of file descriptors and their handlers.
 
+### Proactor Library
 The Proactor library supports the following functions:
 * `void *createProactor()` – Create a proactor object - a linked list of file descriptors and their handlers.
 * `int runProactor(void *this)` – Start executing the proactor, in a new thread.
@@ -52,21 +53,26 @@ The signature of the handler function for proactors is: ```int handler_t(int fd)
 **_NOTE_:** You should never add the listening socket to the proactor, only the client sockets. Trying to add the listening socket to
 the proactor will result in a crash (as sending messages to the listening socket is not supported). The proactor will
 automatically remove the file descriptor from the proactor when it encounters an error, so you don't need to remove it
-yourself. Please also note that all the memory allocations (mainly big arrays) goes through the heap, and not the stack.
+yourself.
 
 The Proactor library is implemented using the following design patterns:
 * **Command** – The handlers are commands that are executed by the proactor.
 * **Proactor** – The proactor is a proactor, and the handlers are proactors.
 
+### The Assignment in General
 The whole assignment was written in C, and supports the following features:
 * **Thread Safety** – The reactor library is thread safe, and can be used by multiple threads at the same time.
 * **Error Handling** – The reactor library handles errors and returns the appropriate error code.
-* **Memory Management** – The reactor library frees all the memory it allocates - no memory leaks are possible when using the library, and no memory is freed twice.
+* **Memory Management** – The reactor library frees all the memory it allocates - no memory leaks are possible when
+using the library, and no memory is freed twice.
 * **Performance** – The reactor library is very efficient, and uses the minimum amount of memory possible.
-* **Documentation** – The reactor library functions are documented using Doxygen style comments, in the header file `reactor.h`.
-* **Portability** – The reactor library is portable, and can be used on any Linux machine, with any GNU C Compiler, and any Make version, as long as the machine supports POSIX threads.
+* **Documentation** – The reactor library functions are documented using Doxygen style comments, in the header files
+`reactor.h` and `proactor.h`.
+* **Portability** – The reactor library is portable, and can be used on any Linux machine, with any GNU C Compiler,
+and any Make version, as long as the machine supports POSIX threads.
 * **Simple API** – The reactor library API is very simple and easy to use.
-* **Logging** – The reactor library logs all the errors it encounters to the standard error stream, using the `fprintf` function, and the `stderr` file descriptor.
+* **Logging** – The reactor library logs all the errors it encounters to the standard error stream, using the
+`fprintf` function, and the `stderr` file descriptor.
 
 
 ## Requirements

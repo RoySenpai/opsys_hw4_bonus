@@ -57,7 +57,7 @@
 #define MAX_BUFFER 			2048
 
 /*
- * @brief Defines the timeout for the poll() function.
+ * @brief Defines the timeout for the poll() function for the reactor.
  * @note The default timeout is -1.
  * @note A timeout of 0 means that poll() will return immediately.
  * @note A timeout of -1 means that poll() will wait forever.
@@ -103,12 +103,10 @@
 // Macro to cleanup the current line.
 #define MACRO_CLEANUP		"\33[2K\r\033"
 
-// Length of the relay message prefix.
-// This is a fixed length, and should not be changed.
-// The length is 33 bytes and the prefix is:
-// "Message from client <clientid>: <message>"
-#define SERVER_RLY_MSG_LEN	33
 
+/********************************/
+/* Functions Declartion Section */
+/********************************/
 
 /*
  * @brief A signal handler for SIGINT.

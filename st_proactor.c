@@ -42,17 +42,18 @@ void *proactorRunFunction(void *args) {
 
 	PProactorNode curr = proactor->head;
 
-	while (curr != NULL)
+	while (curr != NULL && proactor->isRunning)
 	{
 		if (curr->hdlr.handler != NULL)
 		{
 			int ret = curr->hdlr.handler(curr->fd);
 
+			// Error handling
 			if (ret != 0)
 			{
 				fprintf(stderr, "%s proactorRun() failed: handler returned %d\n", C_PREFIX_ERROR, ret);
 				proactor->isRunning = false;
-				return NULL;
+				pthread_exit(NULL);
 			}
 		}
 
@@ -62,7 +63,10 @@ void *proactorRunFunction(void *args) {
 	proactor->isRunning = false;
 
 	fprintf(stderr, "%s Proactor finished running, total file descriptors: %d\n", C_PREFIX_INFO, proactor->size);
-	return proactor;
+
+	pthread_exit(proactor);
+
+	return NULL;
 }
 
 void *createProactor() {
@@ -98,12 +102,14 @@ int runProactor(void *this) {
 
 	if (proactor->head == NULL)
 	{
+		errno = EINVAL;
 		fprintf(stderr, "%s Tried to start a proactor without registered file descriptors.\n", C_PREFIX_WARNING);
 		return 1;
 	}
 
 	else if (proactor->isRunning)
 	{
+		errno = EAGAIN;
 		fprintf(stderr, "%s Tried to start a proactor that's already running.\n", C_PREFIX_WARNING);
 		return 1;
 	}
@@ -112,6 +118,7 @@ int runProactor(void *this) {
 
 	if (pthread_create(&proactor->thread, NULL, proactorRunFunction, proactor) != 0)
 	{
+		proactor->isRunning = false;
 		fprintf(stderr, "%s runProactor() failed: %s\n", C_PREFIX_ERROR, strerror(errno));
 		return 1;
 	}
@@ -137,10 +144,10 @@ int cancelProactor(void *this) {
 
 	fprintf(stdout, "%s Stopping proactor thread gracefully...\n", C_PREFIX_INFO);
 
+	proactor->isRunning = false;
+
 	pthread_cancel(proactor->thread);
 	pthread_join(proactor->thread, NULL);
-
-	proactor->isRunning = false;
 
 	return 0;
 }
@@ -209,6 +216,9 @@ int removeHandler(void *this, int fd) {
 	{
 		proactor->head = curr->next;
 		free(curr);
+
+		proactor->size--;
+
 		return 0;
 	}
 
@@ -219,13 +229,14 @@ int removeHandler(void *this, int fd) {
 			PProactorNode tmp = curr->next;
 			curr->next = curr->next->next;
 			free(tmp);
+
+			proactor->size--;
+
 			return 0;
 		}
 
 		curr = curr->next;
 	}
-
-	proactor->size--;
 
 	fprintf(stderr, "%s removeHandler() failed: %s\n", C_PREFIX_ERROR, strerror(ENOENT));
 	return 1;
@@ -240,6 +251,10 @@ int destroyProactor(void *this) {
 	}
 
 	PProactor proactor = (PProactor)this;
+
+	// Stop the proactor if it's running
+	if (proactor->isRunning)
+		cancelProactor(proactor);
 
 	if (proactor->head != NULL)
 	{
